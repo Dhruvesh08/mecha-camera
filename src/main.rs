@@ -12,10 +12,12 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // Create the elements
     let source = gstreamer::ElementFactory::make("v4l2src")
+        .name("source")
         .build()
         .expect("Could not create source element.");
-    
+
     let enc = gstreamer::ElementFactory::make("jpegenc")
+        .name("convert")
         .build()
         .expect("Could not create sink element");
 
@@ -37,7 +39,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // Wait until error or EOS
     let bus = pipeline.bus().unwrap();
-    for msg in bus.iter_timed(gstreamer::ClockTime::NONE) {
+    for msg in bus.iter_timed(gstreamer::ClockTime::MSECOND) {
         use gstreamer::MessageView;
 
         match msg.view() {
