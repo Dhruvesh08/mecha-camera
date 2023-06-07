@@ -1,3 +1,5 @@
+use std::time::{Duration, Instant};
+use gstreamer::ClockTime;
 use gstreamer::prelude::*;
 use gstreamer::Element;
 use gstreamer::ElementFactory;
@@ -15,15 +17,12 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // Create a v4l2src element
     let src = ElementFactory::make("v4l2src").build().unwrap();
-    src.set_property("device", &"/dev/video0");
 
     // Create a jpegenc element
     let enc = ElementFactory::make("jpegenc").build().unwrap();
 
     // Create a filesink element
     let sink = ElementFactory::make("filesink").build().unwrap();
-
-
 
     // Get an instance of the sink element
     let sink = sink.clone().dynamic_cast::<Element>().unwrap();
@@ -41,9 +40,15 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Start the pipeline
     pipeline.set_state(gstreamer::State::Playing)?;
 
-    // Wait for EOS or error message
+    // Set the duration to wait for image capture
+    let capture_duration = Duration::from_secs(2); // Wait for 2 seconds
+
+    // Get the start time
+    let start_time = Instant::now();
+
+    // Wait for the capture duration or EOS/error message
     let bus = pipeline.bus().unwrap();
-    for msg in bus.iter() {
+    for msg in bus.iter_timed(Some(ClockTime::from_seconds(2))) {
         match msg.view() {
             MessageView::Eos(..) => break,
             MessageView::Error(err) => {
@@ -51,6 +56,11 @@ fn main() -> Result<(), Box<dyn Error>> {
                 break;
             }
             _ => (),
+        }
+
+        // Check if the capture duration has elapsed
+        if Instant::now().duration_since(start_time) >= capture_duration {
+            break;
         }
     }
 
