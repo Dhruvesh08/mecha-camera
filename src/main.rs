@@ -15,6 +15,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // Create a v4l2src element
     let src = ElementFactory::make("v4l2src").build().unwrap();
+    src.set_property("device", &"/dev/video0");
 
     // Create a jpegenc element
     let enc = ElementFactory::make("jpegenc").build().unwrap();
