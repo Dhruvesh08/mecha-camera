@@ -1,61 +1,63 @@
 use gstreamer::prelude::*;
-use gstreamer::Element;
-use gstreamer::ElementFactory;
-use gstreamer::Message;
-use gstreamer::MessageView;
-use gstreamer::Pipeline;
+
 use std::error::Error;
+
+//improve this code as gst use gstreamer::prelude::*;
 
 fn main() -> Result<(), Box<dyn Error>> {
     // Initialize GStreamer
-    gstreamer::init()?;
+    gstreamer::init().unwrap();
 
-    // Create a pipeline
-    let pipeline = Pipeline::new(None);
+    let output_file = "test_gst_v1.jpg";
 
-    // Create a v4l2src element
-    let src = ElementFactory::make("v4l2src").build().unwrap();
-    src.set_property("device", &"/dev/video0");
+    // Create the elements
+    let source = gstreamer::ElementFactory::make("v4l2src")
+        .build()
+        .expect("Could not create source element.");
+    
+    let enc = gstreamer::ElementFactory::make("jpegenc")
+        .build()
+        .expect("Could not create sink element");
 
-    // Create a jpegenc element
-    let enc = ElementFactory::make("jpegenc").build().unwrap();
+    let sink = gstreamer::ElementFactory::make("filesink")
+        .property("location", &output_file)
+        .build()?;
 
-    // Create a filesink element
-    let sink = ElementFactory::make("filesink").build().unwrap();
+    // Create the empty pipeline
+    let pipeline = gstreamer::Pipeline::new(Some("capture-image"));
 
+    // Build the pipeline
+    pipeline.add_many(&[&source, &enc, &sink]).unwrap();
+    source.link(&sink).expect("Elements could not be linked.");
 
+    // Start playing
+    pipeline
+        .set_state(gstreamer::State::Playing)
+        .expect("Unable to set the pipeline to the `Playing` state");
 
-    // Get an instance of the sink element
-    let sink = sink.clone().dynamic_cast::<Element>().unwrap();
-
-    // Set the output file name
-    sink.set_property("location", &"test_using_gst.jpg");
-
-    // Add elements to the pipeline
-    pipeline.add_many(&[&src, &enc, &sink]).unwrap();
-
-    // Link the elements together
-    src.link(&enc).unwrap();
-    enc.link(&sink).unwrap();
-
-    // Start the pipeline
-    pipeline.set_state(gstreamer::State::Playing)?;
-
-    // Wait for EOS or error message
+    // Wait until error or EOS
     let bus = pipeline.bus().unwrap();
-    for msg in bus.iter() {
+    for msg in bus.iter_timed(gstreamer::ClockTime::NONE) {
+        use gstreamer::MessageView;
+
         match msg.view() {
-            MessageView::Eos(..) => break,
             MessageView::Error(err) => {
-                println!("Error from {:?}:", err);
+                eprintln!(
+                    "Error received from element {:?}: {}",
+                    err.src().map(|s| s.path_string()),
+                    err.error()
+                );
+                eprintln!("Debugging information: {:?}", err.debug());
                 break;
             }
+            MessageView::Eos(..) => break,
             _ => (),
         }
     }
 
-    // Stop the pipeline
-    pipeline.set_state(gstreamer::State::Null)?;
+    pipeline
+        .set_state(gstreamer::State::Null)
+        .expect("Unable to set the pipeline to the `Null` state");
 
     Ok(())
 }
