@@ -39,7 +39,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // Wait until error or EOS
     let bus = pipeline.bus().unwrap();
-    for msg in bus.iter_timed(gstreamer::ClockTime::MSECOND) {
+    for msg in bus.iter_timed(gstreamer::ClockTime::SECOND) {
         use gstreamer::MessageView;
 
         match msg.view() {
