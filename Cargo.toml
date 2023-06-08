@@ -6,4 +6,5 @@ repository = "https://github.com/Dhruvesh08/mecha-camera"
 homepage = "https://github.com/Dhruvesh08/mecha-camera"
 
 [dependencies]
+anyhow = "1.0.71"
 gstreamer = "0.20.6"

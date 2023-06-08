@@ -1,65 +1,44 @@
+use anyhow::Error;
 use gstreamer::prelude::*;
+use std::io::Write;
 
-use std::error::Error;
-
-//improve this code as gst use gstreamer::prelude::*;
-
-fn main() -> Result<(), Box<dyn Error>> {
+fn main() -> Result<(), Error> {
     // Initialize GStreamer
-    gstreamer::init().unwrap();
-
-    let output_file = "test_gst_v1.jpg";
-
-    // Create the elements
-    let source = gstreamer::ElementFactory::make("v4l2src")
-        .name("source")
-        .build()
-        .expect("Could not create source element.");
-
-    let enc = gstreamer::ElementFactory::make("jpegenc")
-        .name("convert")
-        .build()
-        .expect("Could not create sink element");
-
-    let sink = gstreamer::ElementFactory::make("filesink")
-        .property("location", &output_file)
-        .build()?;
-
-    // Create the empty pipeline
-    let pipeline = gstreamer::Pipeline::new(Some("capture-image"));
+    gstreamer::init()?;
 
     // Build the pipeline
-    pipeline.add_many(&[&source, &enc, &sink]).unwrap();
-    source.link(&sink).expect("Elements could not be linked.");
+    let pipeline = gstreamer::parse_launch("v4l2src ! videoconvert ! x264enc ! mp4mux ! filesink location=captured_video.mp4")?;
 
-    // Start playing
-    pipeline
-        .set_state(gstreamer::State::Playing)
-        .expect("Unable to set the pipeline to the `Playing` state");
+    // Start recording
+    let _ = pipeline.set_state(gstreamer::State::Playing)?;
 
-    // Wait until error or EOS
-    let bus = pipeline.bus().unwrap();
-    for msg in bus.iter_timed(gstreamer::ClockTime::SECOND) {
-        use gstreamer::MessageView;
-
-        match msg.view() {
-            MessageView::Error(err) => {
-                eprintln!(
-                    "Error received from element {:?}: {}",
-                    err.src().map(|s| s.path_string()),
-                    err.error()
-                );
-                eprintln!("Debugging information: {:?}", err.debug());
-                break;
+    // Wait for the pipeline to be ready
+    let bus = pipeline.bus().expect("Pipeline has no bus");
+    let msg = bus.timed_pop_filtered(gstreamer::CLOCK_TIME_NONE, &[gstreamer::MessageType::EOS, gstreamer::MessageType::Error]);
+    match msg {
+        Some(msg) => {
+            match msg.view() {
+                gstreamer::MessageView::Error(err) => {
+                    eprintln!(
+                        "Error from {:?}: {} ({:?})",
+                        err.src().map(|s| s.path_string()),
+                        err.error(),
+                        err.debug()
+                    );
+                }
+                gstreamer::MessageView::Eos(..) => {
+                    println!("Recording finished");
+                }
+                _ => unreachable!(),
             }
-            MessageView::Eos(..) => break,
-            _ => (),
+        }
+        None => {
+            eprintln!("Failed to receive message from the bus");
         }
     }
 
-    pipeline
-        .set_state(gstreamer::State::Null)
-        .expect("Unable to set the pipeline to the `Null` state");
+    // Stop the pipeline
+    let _ = pipeline.set_state(gstreamer::State::Null)?;
 
     Ok(())
 }

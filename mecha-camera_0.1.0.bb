@@ -7,11 +7,11 @@ inherit cargo
 
 # how to get mecha-camera could be as easy as but default to a git checkout:
 # SRC_URI += "crate://crates.io/mecha-camera/0.1.0"
-SRC_URI += "git://github.com/Dhruvesh08/mecha-camera.git;protocol=https;nobranch=1;branch=main"
-SRCREV = "fc5a124b6fd92b4f0d2577309cff0e5d3788c320"
+SRC_URI += "git://github.com/Dhruvesh08/mecha-camera.git;protocol=https;nobranch=1;branch=mecha-video-gst"
+SRCREV = "5d0be2f061fbc7f4baa04485c015045c6b4df272"
 S = "${WORKDIR}/git"
 CARGO_SRC_DIR = ""
-PV:append = ".AUTOINC+fc5a124b6f"
+PV:append = ".AUTOINC+5d0be2f061"
 
 # please note if you have entries that do not begin with crate://
 # you must change them to how that package can be fetched
