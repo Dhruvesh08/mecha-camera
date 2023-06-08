@@ -1,6 +1,5 @@
 use anyhow::Error;
 use gstreamer::prelude::*;
-use std::io::Write;
 
 fn main() -> Result<(), Error> {
     // Initialize GStreamer
@@ -14,7 +13,7 @@ fn main() -> Result<(), Error> {
 
     // Wait for the pipeline to be ready
     let bus = pipeline.bus().expect("Pipeline has no bus");
-    let msg = bus.timed_pop_filtered(gstreamer::CLOCK_TIME_NONE, &[gstreamer::MessageType::EOS, gstreamer::MessageType::Error]);
+    let msg = bus.timed_pop_filtered(gstreamer::ClockTime::NONE, &[gstreamer::MessageType::Eos, gstreamer::MessageType::Error]);
     match msg {
         Some(msg) => {
             match msg.view() {

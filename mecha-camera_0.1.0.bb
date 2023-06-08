@@ -77,7 +77,7 @@ SRC_URI += " \
     crate://crates.io/winnow/0.4.6 \
 "
 
-DEPENDS:append = "pkgconfig-native gstreamer1.0"
+DEPENDS:append = " pkgconfig-native gstreamer1.0"
 
 
 # FIXME: update generateme with the real MD5 of the license file
