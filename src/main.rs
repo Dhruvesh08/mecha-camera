@@ -6,7 +6,7 @@ fn main() -> Result<(), Error> {
     gstreamer::init()?;
 
     // Build the pipeline
-    let pipeline = gstreamer::parse_launch("v4l2src ! videoconvert ! x264enc ! mp4mux ! filesink location=captured_video.mp4")?;
+    let pipeline = gstreamer::parse_launch("v4l2src ! videoconvert ! vpuenc_h264 !  filesink location=captured_video.h264")?;
 
     // Start recording
     let _ = pipeline.set_state(gstreamer::State::Playing)?;
