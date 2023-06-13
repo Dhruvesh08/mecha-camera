@@ -8,19 +8,19 @@ fn main() -> Result<(), Error> {
     // Create the elements
     let source = gstreamer::ElementFactory::make("v4l2src").build()?;
 
-    let converter = gstreamer::ElementFactory::make("videoconvert").build()?;
-    let encoder = gstreamer::ElementFactory::make("vpuenc_h264").build()?;
+    let converter = gstreamer::ElementFactory::make("jpegenc").build()?;
+    // let encoder = gstreamer::ElementFactory::make("vpuenc_h264").build()?;
     let filesink = gstreamer::ElementFactory::make("filesink")
-        .property("location", "captured_video_v1.h264")
+        .property("location", "capture_Image.jpg")
         .build()?;
     // Create the empty pipeline
     let pipeline = gstreamer::Pipeline::new(Some("test-pipeline"));
 
     // Add elements to the pipeline
-    pipeline.add_many(&[&source, &converter, &encoder, &filesink])?;
+    pipeline.add_many(&[&source, &converter, &filesink])?;
 
     // Link the elements
-    gstreamer::Element::link_many(&[&source, &converter, &encoder, &filesink])?;
+    gstreamer::Element::link_many(&[&source, &converter, &filesink])?;
 
     // Start recording
     pipeline.set_state(gstreamer::State::Playing)?;
