@@ -1,58 +1,39 @@
-use anyhow::Error;
-use gstreamer::prelude::*;
+use std::process::Command;
 
-fn main() -> Result<(), Error> {
-    // Initialize GStreamer
-    gstreamer::init()?;
+fn capture_image(output_file: &str) {
+    // Build the command
+    let command = Command::new("gst-launch-1.0")
+        .args(&[
+            "-v",
+            "v4l2src",
+            &format!("device=/dev/video0"),
+            "num-buffers=1",
+            "!",
+            "jpegenc",
+            "!",
+            "filesink",
+            &format!("location={}", output_file),
+        ])
+        .output()
+        .expect("Failed to execute command");
 
-    // Create the elements
-    let source = gstreamer::ElementFactory::make("v4l2src").build()?;
-
-    let converter = gstreamer::ElementFactory::make("jpegenc").build()?;
-    // let encoder = gstreamer::ElementFactory::make("vpuenc_h264").build()?;
-    let filesink = gstreamer::ElementFactory::make("filesink")
-        .property("location", "capture_Image.jpg")
-        .build()?;
-    // Create the empty pipeline
-    let pipeline = gstreamer::Pipeline::new(Some("test-pipeline"));
-
-    // Add elements to the pipeline
-    pipeline.add_many(&[&source, &converter, &filesink])?;
-
-    // Link the elements
-    gstreamer::Element::link_many(&[&source, &converter, &filesink])?;
-
-    // Start recording
-    pipeline.set_state(gstreamer::State::Playing)?;
-
-    // Wait for the pipeline to be ready
-    let bus = pipeline.bus().expect("Pipeline has no bus");
-    let msg = bus.timed_pop_filtered(
-        gstreamer::ClockTime::NONE,
-        &[gstreamer::MessageType::Eos, gstreamer::MessageType::Error],
-    );
-    match msg {
-        Some(msg) => match msg.view() {
-            gstreamer::MessageView::Error(err) => {
-                eprintln!(
-                    "Error from {:?}: {} ({:?})",
-                    err.src().map(|s| s.path_string()),
-                    err.error(),
-                    err.debug()
-                );
-            }
-            gstreamer::MessageView::Eos(..) => {
-                println!("Recording finished");
-            }
-            _ => unreachable!(),
-        },
-        None => {
-            eprintln!("Failed to receive message from the bus");
-        }
+    if command.status.success() {
+        println!("Image captured and saved to '{}'", output_file);
+    } else {
+        println!("Failed to capture the image");
     }
+}
 
-    // Stop the pipeline
-    pipeline.set_state(gstreamer::State::Null)?;
+fn main() {
+    // // Parse command-line arguments
+    // let args: Vec<String> = std::env::args().collect();
+    // if args.len() != 2 {
+    //     eprintln!("Usage: {} <output_file>", args[0]);
+    //     std::process::exit(1);
+    // }
+    // let output_file = &args[1];
+    let output_file = "test.jpg";
 
-    Ok(())
+    // Capture the image
+    capture_image(output_file);
 }
